@@ -13,8 +13,8 @@ class CircleCIEnvModel {
     }
 
     return {
-      owner: process.env['CIRCLE_PROJECT_REPONAME'],
-      repo: process.env['CIRCLE_PROJECT_USERNAME'],
+      owner: process.env['CIRCLE_PROJECT_USERNAME'],
+      repo: process.env['CIRCLE_PROJECT_REPONAME'],
     }
   }
 
