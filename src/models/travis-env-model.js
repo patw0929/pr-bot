@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 class TravisEnvModel {
-  get isTravis() {
+  get isCI() {
     return (process.env['TRAVIS'] === 'true');
   }
 

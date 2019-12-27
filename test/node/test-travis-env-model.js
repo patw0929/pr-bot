@@ -21,14 +21,14 @@ describe('travis-env-model', function() {
     delete process.env['TRAVIS'];
 
     const travisEnv = new TravisEnvModel();
-    expect(travisEnv.isTravis).to.equal(false);
+    expect(travisEnv.isCI).to.equal(false);
   });
 
   it('is travis', function() {
     process.env['TRAVIS'] = 'true';
 
     const travisEnv = new TravisEnvModel();
-    expect(travisEnv.isTravis).to.equal(true);
+    expect(travisEnv.isCI).to.equal(true);
   });
 
   it('is not pull request', function() {

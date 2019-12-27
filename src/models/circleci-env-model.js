@@ -1,14 +1,14 @@
 class CircleCIEnvModel {
-  get isCircleCI() {
+  get isCI() {
     return (process.env['CIRCLECI'] === 'true');
   }
 
   get isPullRequest() {
-    return (process.env['CIRCLE_PULL_REQUEST'] !== '');
+    return (!!process.env['CIRCLE_PULL_REQUEST'] && process.env['CIRCLE_PULL_REQUEST'] !== '');
   }
 
   get repoDetails() {
-    if (!process.env['CIRCLE_PROJECT_REPONAME']) {
+    if (!process.env['CIRCLE_PROJECT_REPONAME'] || !process.env['CIRCLE_PROJECT_USERNAME']) {
       return null;
     }
 

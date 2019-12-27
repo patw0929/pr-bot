@@ -17,32 +17,40 @@ const fs = require('fs-extra');
 const path = require('path');
 const execSync = require('child_process').execSync;
 const logHelper = require('../utils/log-helper');
+const { CI_SERVICES_MAP } = require('../constants/ciServices');
+const TravisEnvModel = require('../models/travis-env-model');
 const CircleCIEnvModel = require('../models/circleci-env-model');
 const GithubController = require('./github-controller');
 
 const TMPDIR_PREFIX = `/tmp/pr-bot/`;
 
-class CircleCIBot {
-  constructor({configPath} = {}) {
+const CI_SERVICES_ENV_MODAL_MAP = {
+  [CI_SERVICES_MAP.TRAVIS]: TravisEnvModel,
+  [CI_SERVICES_MAP.CIRCLECI]: CircleCIEnvModel
+}
+
+class Bot {
+  constructor({ configPath, ci } = {}) {
     logHelper.setPrimaryPrefix('PR-Bot 🤖');
 
     if (!configPath) {
       configPath = path.resolve('pr-bot.config.js')
     }
     this._configPath = configPath;
+    this._ci = ci;
   }
 
   run() {
-    const circleCIEnv = new CircleCIEnvModel();
+    const CIEnv = new CI_SERVICES_ENV_MODAL_MAP[this._ci]();
 
     return this._readConfig()
     .then((configuration) => {
-      let repoDetails = circleCIEnv.repoDetails;
+      let repoDetails = CIEnv.repoDetails;
       if (!repoDetails) {
         repoDetails = configuration.repoDetails;
       }
       if (!repoDetails) {
-        throw new Error(`Unable to get the Github 'repoDetails' from CircleCI ` +
+        throw new Error(`Unable to get the Github 'repoDetails' from CI ` +
           `environment variable or the configuration file.`);
       }
 
@@ -51,17 +59,17 @@ class CircleCIBot {
         repo: repoDetails.repo,
       });
 
-      return this._buildBeforeAndAfter(configuration, circleCIEnv, githubController)
+      return this._buildBeforeAndAfter(configuration, CIEnv, githubController)
       .then(({beforePath, afterPath}) => {
         return this._runPlugins(configuration.plugins, {beforePath, afterPath});
       })
       .then((pluginResults) => {
-        if (!circleCIEnv.isCircleCI || !circleCIEnv.isPullRequest) {
+        if (!CIEnv.isCI || !CIEnv.isPullRequest) {
           this._logDebugInfo(pluginResults);
           return Promise.resolve();
         }
 
-        return this._logGithubState(configuration, circleCIEnv, githubController, pluginResults);
+        return this._logGithubState(configuration, CIEnv, githubController, pluginResults);
       });
     });
   }
@@ -80,7 +88,7 @@ class CircleCIBot {
     })
   }
 
-  _buildBeforeAndAfter(configuration, circleCIEnv, githubController) {
+  _buildBeforeAndAfter(configuration, ciEnv, githubController) {
     fs.ensureDir(TMPDIR_PREFIX);
 
     return githubController.getRepoDetails()
@@ -97,8 +105,8 @@ class CircleCIBot {
         });
       }
 
-      if (!circleCIEnv.pullRequestSha) {
-        logHelper.warn(`No 'CIRCLE_SHA1' environment variable, ` +
+      if (!ciEnv.pullRequestSha) {
+        logHelper.warn(`No SHA environment variable, ` +
           `so using the current directory for further testing.`);
         return {
           beforePath,
@@ -110,7 +118,7 @@ class CircleCIBot {
 
       logHelper.log(`Cloning default branch into: '${afterPath}'.`);
       execSync(`git clone ${cloneUrl} ${afterPath}`);
-      execSync(`git checkout ${circleCIEnv.pullRequestSha}`, {
+      execSync(`git checkout ${ciEnv.pullRequestSha}`, {
         cwd: afterPath,
       });
 
@@ -193,7 +201,7 @@ class CircleCIBot {
     });
   }
 
-  _logGithubState(configuration, circleCIEnv, githubController, pluginResults) {
+  _logGithubState(configuration, ciEnv, githubController, pluginResults) {
     let githubComment = ``;
     let failPR = false;
     const pluginNames = Object.keys(pluginResults);
@@ -215,7 +223,7 @@ class CircleCIBot {
     let deletePromise = Promise.resolve();
     if (configuration.botUsername) {
       deletePromise = githubController.deletePreviousIssueComments({
-        number: circleCIEnv.pullRequestNumber,
+        number: ciEnv.pullRequestNumber,
         botName: configuration.botUsername
       });
     }
@@ -223,17 +231,17 @@ class CircleCIBot {
     return deletePromise
     .then(() => {
       return githubController.postIssueComment({
-        number: circleCIEnv.pullRequestNumber,
+        number: ciEnv.pullRequestNumber,
         comment: githubComment,
       });
     })
     .then(() => {
       return githubController.postState({
-        sha: circleCIEnv.pullRequestSha,
+        sha: ciEnv.pullRequestSha,
         state: failPR ? 'failure' : 'success'
       })
     });
   }
 }
 
-module.exports = CircleCIBot;
+module.exports = Bot;

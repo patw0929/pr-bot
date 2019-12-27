@@ -17,6 +17,7 @@ const sinon = require('sinon');
 const path = require('path');
 const proxyquire = require('proxyquire');
 const expect = require('chai').expect;
+const { CI_SERVICES_MAP } = require('../../src/constants/ciServices');
 
 class FakeGithubController {
   getRepoDetails() {
@@ -61,7 +62,8 @@ describe('bot-runner', function() {
 
   it('should error when no repo-details in config or travis', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/no-repo-details.config.js')
+      configPath: path.join(__dirname, '../static/no-repo-details.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
@@ -77,7 +79,8 @@ describe('bot-runner', function() {
     process.env['TRAVIS_REPO_SLUG'] = 'gauntface/example-repo';
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/no-repo-details.config.js')
+      configPath: path.join(__dirname, '../static/no-repo-details.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -85,7 +88,8 @@ describe('bot-runner', function() {
 
   it('should instantiate Travis Bot and print to log', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example.config.js')
+      configPath: path.join(__dirname, '../static/example.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     const logSpy = sinon.spy(bot, '_logDebugInfo');
@@ -98,7 +102,8 @@ describe('bot-runner', function() {
 
   it('should handle no name plugins', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/no-plugin-name.config.js')
+      configPath: path.join(__dirname, '../static/no-plugin-name.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
@@ -111,7 +116,8 @@ describe('bot-runner', function() {
 
   it('should handle bad plugins', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/bad-plugin.config.js')
+      configPath: path.join(__dirname, '../static/bad-plugin.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
@@ -124,7 +130,8 @@ describe('bot-runner', function() {
 
   it('should handle good custom plugin', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin.config.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -164,7 +171,8 @@ describe('bot-runner', function() {
     stubs.push(issueStub);
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin.config.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -195,7 +203,8 @@ describe('bot-runner', function() {
     stubs.push(issueStub);
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin-no-bot-name.config.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin-no-bot-name.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -235,7 +244,8 @@ describe('bot-runner', function() {
     stubs.push(issueStub);
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin-that-fails-build.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin-that-fails-build.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -245,7 +255,8 @@ describe('bot-runner', function() {
     process.env['TRAVIS_PULL_REQUEST_SHA'] = '123';
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin.config.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -253,7 +264,8 @@ describe('bot-runner', function() {
 
   it('should handle non-existant config file', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/doesnt-exist.config.js')
+      configPath: path.join(__dirname, '../static/doesnt-exist.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
@@ -266,7 +278,8 @@ describe('bot-runner', function() {
 
   it('should handle throwing config file', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/throwing.config.js')
+      configPath: path.join(__dirname, '../static/throwing.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
@@ -279,14 +292,15 @@ describe('bot-runner', function() {
 
   it('should handle non-returning config file', function() {
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/non-returning.config.js')
+      configPath: path.join(__dirname, '../static/non-returning.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run()
     .then(() => {
       throw new Error('Expected error to be thrown.');
     }, (err) => {
-      expect(err.message).to.equal(`Unable to get the Github 'repoDetails' from Travis environment variable or the configuration file.`);
+      expect(err.message).to.equal(`Unable to get the Github 'repoDetails' from CI environment variable or the configuration file.`);
     });
   });
 
@@ -294,7 +308,8 @@ describe('bot-runner', function() {
     delete process.env['TRAVIS_PULL_REQUEST_SHA'];
 
     const bot = new BotRunner({
-      configPath: path.join(__dirname, '../static/example-with-plugin.config.js')
+      configPath: path.join(__dirname, '../static/example-with-plugin.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
 
     return bot.run();
@@ -327,7 +342,8 @@ describe('bot-runner', function() {
     });
 
     const bot = new CustomBotRunner({
-      configPath: path.join(__dirname, '../static/base-branch-override.config.js')
+      configPath: path.join(__dirname, '../static/base-branch-override.config.js'),
+      ci: CI_SERVICES_MAP.TRAVIS
     });
     return bot.run()
     .then(() => {
