@@ -17,12 +17,12 @@ const fs = require('fs-extra');
 const path = require('path');
 const execSync = require('child_process').execSync;
 const logHelper = require('../utils/log-helper');
-const TravisEnvModel = require('../models/travis-env-model');
+const CircleCIEnvModel = require('../models/circleci-env-model');
 const GithubController = require('./github-controller');
 
 const TMPDIR_PREFIX = `/tmp/pr-bot/`;
 
-class TravisBot {
+class CircleCIBot {
   constructor({configPath} = {}) {
     logHelper.setPrimaryPrefix('PR-Bot 🤖');
 
@@ -33,16 +33,16 @@ class TravisBot {
   }
 
   run() {
-    const travisEnv = new TravisEnvModel();
+    const circleCIEnv = new CircleCIEnvModel();
 
     return this._readConfig()
     .then((configuration) => {
-      let repoDetails = travisEnv.repoDetails;
+      let repoDetails = circleCIEnv.repoDetails;
       if (!repoDetails) {
         repoDetails = configuration.repoDetails;
       }
       if (!repoDetails) {
-        throw new Error(`Unable to get the Github 'repoDetails' from Travis ` +
+        throw new Error(`Unable to get the Github 'repoDetails' from CircleCI ` +
           `environment variable or the configuration file.`);
       }
 
@@ -51,17 +51,17 @@ class TravisBot {
         repo: repoDetails.repo,
       });
 
-      return this._buildBeforeAndAfter(configuration, travisEnv, githubController)
+      return this._buildBeforeAndAfter(configuration, circleCIEnv, githubController)
       .then(({beforePath, afterPath}) => {
         return this._runPlugins(configuration.plugins, {beforePath, afterPath});
       })
       .then((pluginResults) => {
-        if (!travisEnv.isTravis || !travisEnv.isPullRequest) {
+        if (!circleCIEnv.isCircleCI || !circleCIEnv.isPullRequest) {
           this._logDebugInfo(pluginResults);
           return Promise.resolve();
         }
 
-        return this._logGithubState(configuration, travisEnv, githubController, pluginResults);
+        return this._logGithubState(configuration, circleCIEnv, githubController, pluginResults);
       });
     });
   }
@@ -80,7 +80,7 @@ class TravisBot {
     })
   }
 
-  _buildBeforeAndAfter(configuration, travisEnv, githubController) {
+  _buildBeforeAndAfter(configuration, circleCIEnv, githubController) {
     fs.ensureDir(TMPDIR_PREFIX);
 
     return githubController.getRepoDetails()
@@ -97,8 +97,8 @@ class TravisBot {
         });
       }
 
-      if (!travisEnv.pullRequestSha) {
-        logHelper.warn(`No 'TRAVIS_PULL_REQUEST_SHA' environment variable, ` +
+      if (!circleCIEnv.pullRequestSha) {
+        logHelper.warn(`No 'CIRCLE_SHA1' environment variable, ` +
           `so using the current directory for further testing.`);
         return {
           beforePath,
@@ -110,7 +110,7 @@ class TravisBot {
 
       logHelper.log(`Cloning default branch into: '${afterPath}'.`);
       execSync(`git clone ${cloneUrl} ${afterPath}`);
-      execSync(`git checkout ${travisEnv.pullRequestSha}`, {
+      execSync(`git checkout ${circleCIEnv.pullRequestSha}`, {
         cwd: afterPath,
       });
 
@@ -193,7 +193,7 @@ class TravisBot {
     });
   }
 
-  _logGithubState(configuration, travisEnv, githubController, pluginResults) {
+  _logGithubState(configuration, circleCIEnv, githubController, pluginResults) {
     let githubComment = ``;
     let failPR = false;
     const pluginNames = Object.keys(pluginResults);
@@ -215,7 +215,7 @@ class TravisBot {
     let deletePromise = Promise.resolve();
     if (configuration.botUsername) {
       deletePromise = githubController.deletePreviousIssueComments({
-        number: travisEnv.pullRequestNumber,
+        number: circleCIEnv.pullRequestNumber,
         botName: configuration.botUsername
       });
     }
@@ -223,17 +223,17 @@ class TravisBot {
     return deletePromise
     .then(() => {
       return githubController.postIssueComment({
-        number: travisEnv.pullRequestNumber,
+        number: circleCIEnv.pullRequestNumber,
         comment: githubComment,
       });
     })
     .then(() => {
       return githubController.postState({
-        sha: travisEnv.pullRequestSha,
+        sha: circleCIEnv.pullRequestSha,
         state: failPR ? 'failure' : 'success'
       })
     });
   }
 }
 
-module.exports = TravisBot;
+module.exports = CircleCIBot;

@@ -18,7 +18,7 @@ limitations under the License.
 const meow = require('meow');
 const path = require('path');
 const logHelper = require('../src/utils/log-helper');
-const TravisBotRunner = require('../src/controllers/bot-runner');
+const CircleCIBotRunner = require('../src/controllers/bot-runner');
 
 const cli = meow(`
     Usage
@@ -41,8 +41,8 @@ if (cli.flags.config) {
   options.configPath = path.resolve(cli.flags.config);
 }
 
-const travisBotRuner = new TravisBotRunner(options);
-travisBotRuner.run()
+const circleCIBotRuner = new CircleCIBotRunner(options);
+circleCIBotRuner.run()
 .catch((err) => {
   logHelper.error(err);
   process.exit(1);
