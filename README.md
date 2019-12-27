@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/GoogleChromeLabs/pr-bot.svg?branch=master)](https://travis-ci.org/GoogleChromeLabs/pr-bot) [![Coverage Status](https://coveralls.io/repos/github/GoogleChromeLabs/pr-bot/badge.svg?branch=master)](https://coveralls.io/github/GoogleChromeLabs/pr-bot?branch=master) [![dependencies Status](https://david-dm.org/googlechromelabs/pr-bot/status.svg)](https://david-dm.org/googlechromelabs/pr-bot) [![devDependencies Status](https://david-dm.org/googlechromelabs/pr-bot/dev-status.svg)](https://david-dm.org/googlechromelabs/pr-bot?type=dev)
 
 This is a small utility to run a set of "plugins"
-against a Pull Request on Travis and then report
+against a Pull Request on Travis & CircleCI and then report
 a set of results to GitHub.
 
 ![Example PR-Bot Output](http://i.imgur.com/QMOaiQy.png)
@@ -69,7 +69,7 @@ to your GitHub repository).
     };
     ```
 
-1. Add the following to your `.travis.yml` file
+1. Add the following to your `.travis.yml` or `.circleci/config.yml` file
 
     ```yaml
     after_script:
@@ -92,7 +92,7 @@ pr-bot
 ```
 
 This is useful if you want to see the file differences without
-waiting on Travis.
+waiting on Travis & CircleCI.
 
 ![Example console output from Size Plugin from pr-bot](http://i.imgur.com/h518U9O.png)
 
@@ -104,6 +104,14 @@ You can use the `-c` flag to define a custom config path:
 pr-bot -c ./some-path-my-config.js
 ```
 
+### You can select to use Travis or CircleCI as your CI service
+
+You can use the `--ci` flag to choose Travis or CircleCI:
+
+```shell
+pr-bot --ci travis
+```
+
 ### Customising Install and Build
 
 If `npm install && npm build` will not suffice for your project,
@@ -112,7 +120,7 @@ to define the command to run in the two checkouts of your project.
 
 ```javascript
 module.exports = {
-  // Custom build command in travis.config.js
+  // Custom build command in pr-bot.config.js
   buildCommand: `npm install && gulp`,
 
 
@@ -128,7 +136,7 @@ When you run `pr-bot` it checks out two versions of your project.
 1. **If run locally**, it'll checkout the default branch of your repo AND
 use the current directory and the current files for the second
 version.
-1. **If run on Travis**, it'll checkout the base of the Pull Request,
+1. **If run on Travis or CircleCI**, it'll checkout the base of the Pull Request,
 or the target branch, for the first version and it'll checkout the Pull
 Request commit as the second version.
 
